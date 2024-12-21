@@ -1,0 +1,66 @@
+<script setup lang="ts">
+</script>
+
+<template>
+<div class='accordion'>
+    <div class='accordion__item'>
+        <img class=" bg-red-300" src="@/assets/logo/logo.jpg" />
+  </div>
+  <div class='accordion__item'>
+        <img class=" bg-red-300" src="@/assets/logo/logo.jpg" />
+  </div>
+  
+</div>
+</template>
+
+<style scoped>
+
+.accordion {
+  width: 40%;
+  height: 100%;
+  margin: auto;
+  padding: 2em;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  transition: 1s ease;
+}
+
+.accordion--row {
+  flex-direction: row;
+  width: 60%;
+  gap: .5rem;
+}
+
+.accordion__item { 
+    width: 70%;
+    margin: auto;
+  flex-basis: 10%;
+  height: 100%;
+  margin-bottom: 1em;
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: helvetica;
+  background-color: #e6f8ff;
+  cursor: pointer;
+  box-shadow: 2px 2px .3em #67adb5;
+  transition: all 2s ease
+} 
+
+
+.accordion__item:hover { 
+    background-color: #cde9f7;
+    flex-grow: 3;
+    width: 100%;
+
+} 
+
+.accordion__item:active { 
+  box-shadow: 1px 1px .1em #67adb5;
+  background-color: #bde6fc;
+  color: white;
+} 
+
+</style>
