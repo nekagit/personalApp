@@ -98,7 +98,7 @@ const loadFile = async (file) => {
 .sidebar {
   width: 250px;
   border-right: 1px solid #d1d5db;
-  background: #112145;
+  background: #fff;
   display: flex;
   flex-direction: column;
   padding-top: 1rem;
@@ -136,6 +136,7 @@ const loadFile = async (file) => {
 }
 
 .file-item {
+  color: #0c0f30;
   padding: 0.5rem;
   cursor: pointer;
   border-radius: 0.25rem;
@@ -155,7 +156,7 @@ const loadFile = async (file) => {
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
-  background-color: #112145;
+  background-color: #fff;
 }
 
 .current-file {

@@ -86,6 +86,19 @@ function parseFlashcards(file) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #f4f7fa;
+}
+
+input[type="file"] {
+  margin-bottom: 20px;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: white;
+  cursor: pointer;
 }
 
 .flashcard-container {
@@ -96,10 +109,12 @@ function parseFlashcards(file) {
 
 .flashcard {
   display: flex;
-  width: 300px;
-  height: 200px;
+  width: 320px;
+  height: 220px;
   perspective: 1000px;
   cursor: pointer;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .front, .back {
@@ -110,15 +125,17 @@ function parseFlashcards(file) {
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 1px solid #ddd;
+  border-radius: 10px;
   padding: 20px;
-  transition: transform 0.5s;
   font-size: 1.2rem;
+  background-color: #ffffff;
+  color: #333;
+  transition: transform 0.6s ease-in-out, background-color 0.3s ease;
 }
 
 .back {
   transform: rotateY(180deg);
-  background-color: #f0f0f0;
+  background-color: #f9f9f9;
 }
 
 .flipped .front {
@@ -132,7 +149,27 @@ function parseFlashcards(file) {
 .controls {
   display: flex;
   justify-content: space-between;
-  width: 300px;
+  width: 320px;
   margin-top: 20px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background-color: #5e9fdd;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #467db3;
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 </style>

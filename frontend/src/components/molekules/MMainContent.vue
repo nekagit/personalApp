@@ -1,7 +1,7 @@
 <template>
-  <div class="flex-1 bg-[#112146]">
+  <div class="flex-1 bg-[#fff]">
     <transition name="fade" mode="out-in">
-      <div class="bg-[#112146]">
+      <div class="bg-[#fff]">
 
       <router-view class="" />
       </div>
