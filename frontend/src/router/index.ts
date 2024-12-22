@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "../views/personalApp/HomeView.vue";
 import TodoView from "@/views/personalApp/TodoView.vue";
 import PomodoroView from "@/views/personalApp/PomodoroView.vue";
+import CalenderView from "@/views/personalApp/CalenderView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,11 +22,11 @@ const router = createRouter({
       name: "pomodoro",
       component: PomodoroView,
     },
-    // {
-    //   path: '/projects',
-    //   name: 'projects',
-    //   component: ProjectsView
-    // },
+    {
+      path: '/calendar',
+      name: 'calendar',
+      component: CalenderView
+    },
     // {
     //   path: '/resume',
     //   name: 'resume',
