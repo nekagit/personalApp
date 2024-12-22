@@ -3,6 +3,7 @@ import HomeView from "../views/personalApp/HomeView.vue";
 import TodoView from "@/views/personalApp/TodoView.vue";
 import PomodoroView from "@/views/personalApp/PomodoroView.vue";
 import CalenderView from "@/views/personalApp/CalenderView.vue";
+import MarkdownView from "@/views/personalApp/MarkdownView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,11 +28,11 @@ const router = createRouter({
       name: 'calendar',
       component: CalenderView
     },
-    // {
-    //   path: '/resume',
-    //   name: 'resume',
-    //   component: ResumeView
-    // }
+    {
+      path: '/markdown',
+      name: 'markdown',
+      component: MarkdownView
+    }
   ],
 });
 

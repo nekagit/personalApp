@@ -128,6 +128,47 @@
       </svg>
       Calendar
     </router-link>
+    <router-link
+      class="flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 rounded-md transition-colors"
+      to="/markdown"
+      :class="['nav-link', { 'active-link': $route.path === '/markdown' }]"
+    >
+      <svg
+        class="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <line
+          x1="12"
+          y1="12"
+          x2="12"
+          y2="6"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <line
+          x1="12"
+          y1="12"
+          x2="16"
+          y2="12"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      Markdown
+    </router-link>
   </nav>
 </template>
 
