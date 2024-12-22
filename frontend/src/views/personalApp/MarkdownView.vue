@@ -98,7 +98,7 @@ const loadFile = async (file) => {
 .sidebar {
   width: 250px;
   border-right: 1px solid #d1d5db;
-  background: #1e1e2f;
+  background: #112145;
   display: flex;
   flex-direction: column;
   padding-top: 1rem;
@@ -106,7 +106,7 @@ const loadFile = async (file) => {
 
 .folder-select {
   padding: 1rem;
-  border-bottom: 1px solid #2d2d3f;
+  border-bottom: 1px solid #112145;
 }
 
 .folder-select input[type="file"] {
@@ -116,7 +116,7 @@ const loadFile = async (file) => {
 .select-btn {
   width: 100%;
   padding: 0.75rem;
-  background: #5e81f4;
+  background: #ea580b;
   color: white;
   border: none;
   border-radius: 0.375rem;
@@ -155,7 +155,7 @@ const loadFile = async (file) => {
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
-  background-color: #1e1e2f;
+  background-color: #112145;
 }
 
 .current-file {

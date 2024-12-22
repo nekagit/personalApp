@@ -220,7 +220,7 @@ onMounted(loadEntries);
 <style scoped>
 .calendar-container {
   max-width: 1000px;
-  margin: 0 auto;
+  margin:auto;
   padding: 20px;
 }
 
@@ -341,12 +341,12 @@ button {
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
-  background-color: #007bff;
+  background-color: #ea580b;
   color: white;
   cursor: pointer;
 }
 
 button:hover {
-  background-color: #0056b3;
+  background-color: #b44c13;
 }
 </style>

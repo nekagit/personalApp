@@ -4,6 +4,7 @@ import TodoView from "@/views/personalApp/TodoView.vue";
 import PomodoroView from "@/views/personalApp/PomodoroView.vue";
 import CalenderView from "@/views/personalApp/CalenderView.vue";
 import MarkdownView from "@/views/personalApp/MarkdownView.vue";
+import FlashCardView from "@/views/personalApp/FlashCardView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,15 +25,20 @@ const router = createRouter({
       component: PomodoroView,
     },
     {
-      path: '/calendar',
-      name: 'calendar',
-      component: CalenderView
+      path: "/calendar",
+      name: "calendar",
+      component: CalenderView,
     },
     {
-      path: '/markdown',
-      name: 'markdown',
-      component: MarkdownView
-    }
+      path: "/markdown",
+      name: "markdown",
+      component: MarkdownView,
+    },
+    {
+      path: "/flashCard",
+      name: "flashCard",
+      component: FlashCardView,
+    },
   ],
 });
 

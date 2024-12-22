@@ -12,7 +12,7 @@
           v-if="!isActive"
           @click="startTimer"
           :disabled="isStartDisabled"
-          class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-6 py-3 bg-[#ea580b] text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Start Focus
         </button>
