@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-8 px-4"
-  >
+  <div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-8 px-4">
     <div class="max-w-4xl mx-auto">
       <h1 class="text-4xl font-bold text-purple-800 mb-8 text-center">
         My Tasks
@@ -25,15 +23,19 @@
               v-model="newTodo.priority"
               class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              <option
-                v-for="priority in PRIORITIES"
-                :key="priority"
-                :value="priority"
-              >
-                {{ priority.charAt(0).toUpperCase() + priority.slice(1) }}
-                Priority
+              <option v-for="priority in PRIORITIES" :key="priority" :value="priority">
+                {{ priority.charAt(0).toUpperCase() + priority.slice(1) }} Priority
               </option>
             </select>
+            <div class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="repeats-daily"
+                v-model="newTodo.repeats_daily"
+                class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+              />
+              <label for="repeats-daily" class="text-sm text-gray-600">Repeats Daily</label>
+            </div>
             <button
               type="submit"
               class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
@@ -93,12 +95,13 @@
               <p
                 :class="[
                   'text-lg',
-                  todo.completed
-                    ? 'line-through text-gray-400'
-                    : 'text-gray-800',
+                  todo.completed ? 'line-through text-gray-400' : 'text-gray-800',
                 ]"
               >
                 {{ todo.text }}
+                <span v-if="todo.repeats_daily" class="text-xs text-purple-600 ml-2">
+                  (Repeats Daily)
+                </span>
               </p>
               <div class="flex gap-2 mt-1">
                 <span
@@ -111,6 +114,9 @@
                 </span>
                 <span class="text-xs text-gray-500">
                   Created: {{ formatDate(todo.created_at) }}
+                </span>
+                <span v-if="todo.last_completed" class="text-xs text-gray-500">
+                  Last completed: {{ formatDate(todo.last_completed) }}
                 </span>
               </div>
             </div>
@@ -147,7 +153,7 @@ import { computed, onMounted, ref } from "vue";
 
 // Constants
 const PRIORITIES = ['low', 'medium', 'high'] as const;
-const FILTERS = ["Active", "Completed","All" ] as const;
+const FILTERS = ["Active", "Completed", "All"] as const;
 const PRIORITY_CLASSES = {
   low: "bg-green-100 text-green-800",
   medium: "bg-yellow-100 text-yellow-800",
@@ -163,17 +169,20 @@ interface Todo {
   text: string;
   priority: Priority;
   completed: boolean;
+  repeats_daily: boolean;
   created_at?: string;
+  last_completed?: string;
 }
 
 // State
 const todos = ref<Todo[]>([]);
 const currentFilter = ref<Filter>("Active");
 
-const newTodo = ref<Omit<Todo, 'id' | 'created_at'>>({
+const newTodo = ref<Omit<Todo, 'id' | 'created_at' | 'last_completed'>>({
   text: "",
   priority: "medium",
-  completed: false
+  completed: false,
+  repeats_daily: false
 });
 
 // Computed
@@ -205,7 +214,8 @@ const handleAddTodo = async () => {
     newTodo.value = {
       text: "",
       priority: "medium",
-      completed: false
+      completed: false,
+      repeats_daily: false
     };
   } catch (error) {
     console.error("Failed to add todo:", error);
@@ -228,7 +238,13 @@ const handleToggleTodo = async (id: number) => {
 
     const todo = todos.value[todoIndex];
     await toggleTodo(id, !todo.completed);
-    todos.value[todoIndex] = { ...todo, completed: !todo.completed };
+    
+    // Update the todo in the local state
+    todos.value[todoIndex] = { 
+      ...todo, 
+      completed: !todo.completed,
+      last_completed: !todo.completed ? new Date().toISOString() : undefined
+    };
   } catch (error) {
     console.error("Failed to toggle todo:", error);
   }
@@ -243,7 +259,9 @@ const formatDate = (date: string | undefined | null) => {
   return new Intl.DateTimeFormat(undefined, {
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric'
   }).format(parsed);
 };
 

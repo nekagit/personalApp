@@ -7,7 +7,9 @@ export interface ITodo {
   text: string;
   completed: boolean;
   priority: "low" | "medium" | "high";
+  repeats_daily: boolean;
   created_at?: string;
+  last_completed?: string;
 }
 
 export const fetchTodos = async (): Promise<ITodo[]> => {
@@ -29,4 +31,12 @@ export const toggleTodo = async (
   completed: boolean
 ): Promise<void> => {
   await axios.patch(`${API_URL}/todos/${id}`, { completed });
+};
+
+export const updateTodo = async (
+  id: number,
+  updates: Partial<ITodo>
+): Promise<ITodo> => {
+  const response = await axios.patch(`${API_URL}/todos/${id}`, updates);
+  return response.data;
 };
