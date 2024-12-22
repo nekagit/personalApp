@@ -40,7 +40,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { marked } from 'marked';
+import MarkdownIt from 'markdown-it';  // Replace marked with markdown-it
+import DOMPurify from 'dompurify';
+
+// Create a markdown-it instance
+const md = new MarkdownIt();
 
 // State
 const files = ref([]);
@@ -62,44 +66,47 @@ const handleFolderSelect = (event) => {
     .sort((a, b) => a.name.localeCompare(b.name));
 };
 
-// Load and parse markdown file
+// Load file and parse markdown
 const loadFile = async (file) => {
   try {
     currentFile.value = file.path;
     const text = await file.file.text();
     markdownContent.value = text;
-    parsedMarkdown.value = marked(text);
+
+    // Ensure all objects or arrays are converted to strings before passing to markdown-it
+    const sanitizedText = text.replace(/\[object Object\]/g, (match) => {
+      return JSON.stringify(match); // Converts the object into string form
+    });
+    const rawHtml = md.render(sanitizedText);
+    const sanitizedHtml = DOMPurify.sanitize(rawHtml);
+    console.log(sanitizedHtml); // Check if the lists and headings are present
+    parsedMarkdown.value = sanitizedHtml;
+
   } catch (error) {
     console.error('Error loading markdown file:', error);
   }
 };
-
-// Set up marked options (optional)
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-  headerIds: true
-});
 </script>
 
 <style scoped>
 .markdown-explorer {
   display: flex;
   height: 100vh;
-  font-family: 'Arial', sans-serif;
+  font-family: 'Inter', sans-serif; /* Modern font */
 }
 
 .sidebar {
   width: 250px;
-  border-right: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-right: 1px solid #d1d5db;
+  background: #1e1e2f;
   display: flex;
   flex-direction: column;
+  padding-top: 1rem;
 }
 
 .folder-select {
   padding: 1rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #2d2d3f;
 }
 
 .folder-select input[type="file"] {
@@ -108,92 +115,135 @@ marked.setOptions({
 
 .select-btn {
   width: 100%;
-  padding: 0.5rem;
-  background: #3b82f6;
+  padding: 0.75rem;
+  background: #5e81f4;
   color: white;
   border: none;
-  border-radius: 0.25rem;
+  border-radius: 0.375rem;
   cursor: pointer;
+  font-weight: 600;
 }
 
 .select-btn:hover {
-  background: #2563eb;
+  background: #4c71db;
 }
 
 .file-tree {
   flex: 1;
   overflow-y: auto;
   padding: 0.5rem;
+  color: #e1e1e6;
 }
 
 .file-item {
   padding: 0.5rem;
   cursor: pointer;
   border-radius: 0.25rem;
+  transition: background-color 0.3s ease;
 }
 
 .file-item:hover {
-  background: #e2e8f0;
+  background: #3e3e53;
 }
 
 .file-item.active {
-  background: #bfdbfe;
-  color: #1e40af;
+  background: #5e81f4;
+  color: white;
 }
 
 .content {
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
+  background-color: #1e1e2f;
 }
 
 .current-file {
   margin-bottom: 1rem;
-  padding: 0.5rem;
-  background: #f1f5f9;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  color: #64748b;
+  padding: 0.75rem;
+  background: #2d2d3f;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  color: #a5b4fc;
 }
 
 .markdown-viewer {
-  line-height: 1.6;
-  color: #333;
+  line-height: 1.75;
+  color: #d1d5db;
+  font-size: 1rem;
+  white-space: pre-wrap; /* Ensures proper formatting of indented content */
+  background-color: #282c34; /* Darker background */
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .markdown-viewer h1,
 .markdown-viewer h2,
 .markdown-viewer h3 {
-  color: #2c3e50;
-  margin-top: 1.5rem;
+  color: #a5b4fc;
+  margin-top: 2rem;
   margin-bottom: 1rem;
+}
+
+.markdown-viewer h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #4a90e2; /* Light blue color for h1 */
+}
+
+.markdown-viewer h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #ff9500; /* Orange color for h2 */
+}
+
+.markdown-viewer h3 {
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: #333; /* Dark gray for h3 */
 }
 
 .markdown-viewer ul,
 .markdown-viewer ol {
-  margin-left: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.markdown-viewer blockquote {
-  border-left: 4px solid #cbd5e1;
+  margin-left: 2rem;
   padding-left: 1rem;
-  margin: 1rem 0;
-  color: #64748b;
+  list-style-position: outside; /* Ensures list markers are visible */
 }
 
-.markdown-viewer code {
-  background: #f1f5f9;
-  padding: 0.2rem 0.4rem;
-  border-radius: 0.25rem;
-  font-family: monospace;
+.markdown-viewer ul {
+  list-style-type: disc; /* Bulleted lists */
 }
 
-.markdown-viewer pre {
-  background: #f8fafc;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin: 1rem 0;
+.markdown-viewer ol {
+  list-style-type: decimal; /* Numbered lists */
 }
+
+.markdown-viewer ul ul,
+.markdown-viewer ol ul,
+.markdown-viewer ul ol,
+.markdown-viewer ol ol {
+  margin-left: 1.5rem;
+  list-style-type: circle; /* Nested lists */
+}
+
+.markdown-viewer li {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-viewer ol li {
+  counter-increment: list-item;
+}
+
+.markdown-viewer ol {
+  list-style-type: decimal;
+  counter-reset: list-item;
+}
+
+.markdown-viewer ol li::before {
+  content: counter(list-item) ". ";
+  font-weight: 600;
+  color: #ff9500;
+}
+
 </style>
