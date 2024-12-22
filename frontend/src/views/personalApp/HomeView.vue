@@ -19,11 +19,6 @@
               placeholder="What needs to be done?"
               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
-            <input
-              v-model="newTodo.dueDate"
-              type="date"
-              class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
           </div>
           <div class="flex gap-4">
             <select
@@ -45,7 +40,6 @@
             >
               Add Task
             </button>
-            <!-- Filters -->
           </div>
         </form>
       </div>
@@ -83,70 +77,65 @@
         >
           No tasks found
         </div>
-        <ul>
-          <li
-            v-for="todo in filteredTodos"
-            :key="todo.id"
-            class="p-4 hover:bg-gray-50 transition-colors"
-          >
-            <div class="flex items-center gap-4">
-              <input
-                type="checkbox"
-                :checked="todo.completed"
-                @change="handleToggleTodo(todo.id)"
-                class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
-              />
-              <div class="flex-1">
-                <p
+        <li
+          v-for="todo in filteredTodos"
+          :key="todo.id"
+          class="p-4 hover:bg-gray-50 transition-colors"
+        >
+          <div class="flex items-center gap-4">
+            <input
+              type="checkbox"
+              :checked="todo.completed"
+              @change="handleToggleTodo(todo.id)"
+              class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+            />
+            <div class="flex-1">
+              <p
+                :class="[
+                  'text-lg',
+                  todo.completed
+                    ? 'line-through text-gray-400'
+                    : 'text-gray-800',
+                ]"
+              >
+                {{ todo.text }}
+              </p>
+              <div class="flex gap-2 mt-1">
+                <span
                   :class="[
-                    'text-lg',
-                    todo.completed
-                      ? 'line-through text-gray-400'
-                      : 'text-gray-800',
+                    'text-xs px-2 py-1 rounded-full',
+                    PRIORITY_CLASSES[todo.priority],
                   ]"
                 >
-                  {{ todo.text }}
-                </p>
-                <div class="flex gap-2 mt-1">
-                  <span
-                    :class="[
-                      'text-xs px-2 py-1 rounded-full',
-                      PRIORITY_CLASSES[todo.priority],
-                    ]"
-                  >
-                    {{ todo.priority }}
-                  </span>
-                  <span class="text-xs text-gray-500">
-                    Due: {{ formatDate(todo.dueDate) }}
-                  </span>
-                  <span class="text-xs text-gray-500">
-                    Created: {{ formatDate(todo.created_at) }}
-                  </span>
-                </div>
+                  {{ todo.priority }}
+                </span>
+                <span class="text-xs text-gray-500">
+                  Created: {{ formatDate(todo.created_at) }}
+                </span>
               </div>
-              <button
-                @click="handleRemoveTodo(todo.id)"
-                class="p-2 text-gray-400 hover:text-red-500 focus:outline-none"
-                aria-label="Delete task"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="w-6 h-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
             </div>
-          </li>
-        </ul>
+            <button
+              @click="handleRemoveTodo(todo.id)"
+              class="p-2 text-gray-400 hover:text-red-500 focus:outline-none"
+              aria-label="Delete task"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </button>
+          </div>
+        </li>
       </TransitionGroup>
     </div>
   </div>
@@ -158,7 +147,7 @@ import { computed, onMounted, ref } from "vue";
 
 // Constants
 const PRIORITIES = ['low', 'medium', 'high'] as const;
-const FILTERS = ["All", "Active", "Completed"] as const;
+const FILTERS = ["Active", "Completed","All" ] as const;
 const PRIORITY_CLASSES = {
   low: "bg-green-100 text-green-800",
   medium: "bg-yellow-100 text-yellow-800",
@@ -173,18 +162,17 @@ interface Todo {
   id?: number;
   text: string;
   priority: Priority;
-  dueDate: string;
   completed: boolean;
   created_at?: string;
 }
 
 // State
 const todos = ref<Todo[]>([]);
-const currentFilter = ref<Filter>("All");
+const currentFilter = ref<Filter>("Active");
+
 const newTodo = ref<Omit<Todo, 'id' | 'created_at'>>({
   text: "",
   priority: "medium",
-  dueDate: new Date().toISOString().split("T")[0],
   completed: false
 });
 
@@ -206,9 +194,19 @@ const handleAddTodo = async () => {
   if (!newTodo.value.text.trim()) return;
 
   try {
-    const result = await addTodo(newTodo.value);
+    const todoToAdd = {
+      ...newTodo.value
+    };
+    
+    const result = await addTodo(todoToAdd);
     todos.value.push(result);
-    newTodo.value.text = "";
+    
+    // Reset form
+    newTodo.value = {
+      text: "",
+      priority: "medium",
+      completed: false
+    };
   } catch (error) {
     console.error("Failed to add todo:", error);
   }
@@ -237,14 +235,17 @@ const handleToggleTodo = async (id: number) => {
 };
 
 const formatDate = (date: string | undefined | null) => {
-  if (!date || isNaN(new Date(date).getTime())) {
-    return "Invalid Date";
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-  }).format(new Date(date));
-};
+  if (!date) return "No date set";
+  
+  const parsed = new Date(date);
+  if (isNaN(parsed.getTime())) return "Invalid date";
 
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  }).format(parsed);
+};
 
 // Lifecycle
 onMounted(async () => {
