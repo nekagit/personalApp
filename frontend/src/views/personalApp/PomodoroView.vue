@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center ">
+<div class="min-h-screen flex items-center justify-center">
     <div class="pomodoro-timer bg-white rounded-lg shadow-xl p-8 w-96">
       <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">{{ title }}</h1>
       
-      <div class="timer-display text-6xl font-mono text-center mb-8">
+     <div class="timer-display text-6xl font-mono text-center mb-8">
         {{ formatTime(timeLeft) }}
       </div>
       
@@ -16,6 +16,24 @@
         >
           Start Focus
         </button>
+        <button
+          v-else
+          @click="stopTimer"
+          class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Stop
+        </button>
+      </div>
+
+      <div v-if="sessionComplete" class="text-center mb-6">
+        <button
+          @click="startBreak"
+          class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          Start Break
+        </button>
+      </div>
+      
         <button
           v-else
           @click="stopTimer"
@@ -67,18 +85,48 @@
         <p class="text-xl font-semibold text-blue-600">Break time! 🎉</p>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
-// Audio setup
-const startSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
-const alarmSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+// Audio context setup
+let audioContext;
+let alarmBuffer;
+const ALARM_URL = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3';
 
-// Set alarm volume to maximum
-alarmSound.volume = 1.0;
+// Initialize Web Audio API
+const initAudio = async () => {
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const response = await fetch(ALARM_URL);
+    const arrayBuffer = await response.arrayBuffer();
+    alarmBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  } catch (error) {
+    console.error('Error initializing audio:', error);
+  }
+};
+// In your Vue component
+
+// Play alarm using Web Audio API
+const playAlarm = () => {
+  if (!audioContext || !alarmBuffer) return;
+  
+  try {
+    const source = audioContext.createBufferSource();
+    source.buffer = alarmBuffer;
+    source.connect(audioContext.destination);
+    source.loop = true;
+    source.start();
+    
+    // Stop after 3 seconds
+    setTimeout(() => {
+      source.stop();
+    }, 3000);
+  } catch (error) {
+    console.error('Error playing alarm:', error);
+  }
+};
 
 // Timer state
 const workTime = ref(25);
@@ -90,23 +138,48 @@ const sessionComplete = ref(false);
 const isStartDisabled = ref(false);
 let endTime = 0;
 
-// Load saved state from localStorage
-onMounted(() => {
+// Register service worker
+const registerServiceWorker = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/timer-worker.js', {
+        scope: '/'
+      });
+      console.log('Service Worker registered:', registration);
+      
+      // Send the initial timer data to the service worker
+      if (registration.active) {
+        registration.active.postMessage({
+          type: 'START_TIMER',
+          endTime: endTime
+        });
+      }
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+    }
+  }
+};
+
+onMounted(async () => {
+  // Initialize audio and service worker
+  await initAudio();
+  await registerServiceWorker();
+  
   const savedState = JSON.parse(localStorage.getItem('pomodoroState') || '{}');
   if (savedState.endTime && savedState.endTime > Date.now()) {
     restoreState(savedState);
   }
   
-  // Register visibility change handler
   document.addEventListener('visibilitychange', handleVisibilityChange);
   
-  // Start background timer if active
   if (isActive.value) {
     startBackgroundTimer();
   }
   
-  // Preload the alarm sound
-  alarmSound.load();
+  // Request notification permission
+  if ('Notification' in window) {
+    await Notification.requestPermission();
+  }
 });
 
 onUnmounted(() => {
@@ -192,23 +265,18 @@ const startTimer = async () => {
   saveState();
   startBackgroundTimer();
 };
-
 const handleTimerComplete = async () => {
   isActive.value = false;
   
-  try {
-    // Loop the alarm sound a few times to make it more noticeable
-    alarmSound.loop = true;
-    await alarmSound.play();
-    
-    // Stop the alarm after 3 seconds
-    setTimeout(() => {
-      alarmSound.loop = false;
-      alarmSound.pause();
-      alarmSound.currentTime = 0;
-    }, 3000);
-  } catch (error) {
-    console.error('Error playing alarm sound:', error);
+  // Play alarm sound
+  playAlarm();
+  
+  // Show notification
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(isBreak.value ? 'Break Complete!' : 'Focus Session Complete!', {
+      body: isBreak.value ? 'Time to focus!' : 'Time for a break!',
+      icon: '/timer-icon.png'
+    });
   }
   
   if (!isBreak.value) {
