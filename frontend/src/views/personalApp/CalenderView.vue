@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed ,watch} from 'vue';
 import { fetchCalendarEntries, addCalendarEntry, removeCalendarEntry, updateCalendarEntry, type ICalendarEntry } from '../../services/calendarService';
+import { transformBirthdaysToCalendarFormat } from '@/services/birthdayService';
 
 // State
 const currentDate = ref(new Date());
@@ -34,11 +35,9 @@ const firstDayOfMonth = computed(() => {
 
 const days = computed(() => {
   const result = [];
-  // Add empty spaces for days before the first day of the month
   for (let i = 0; i < firstDayOfMonth.value; i++) {
     result.push(null);
   }
-  // Add all days of the month
   for (let i = 1; i <= daysInMonth.value; i++) {
     result.push(i);
   }
@@ -49,14 +48,34 @@ const currentMonthName = computed(() => {
   return currentDate.value.toLocaleString('default', { month: 'long' });
 });
 
+const isToday = (day: number | null) => {
+  if (!day) return false;
+  const today = new Date();
+  return today.getDate() === day &&
+         today.getMonth() === currentDate.value.getMonth() &&
+         today.getFullYear() === currentDate.value.getFullYear();
+};
+
 // Methods
 const loadEntries = async () => {
   try {
-    calendarEntries.value = await fetchCalendarEntries();
+    // Fetch regular calendar entries
+    const regularEntries = await fetchCalendarEntries();
+    
+    // Get birthdays for the current year
+    const birthdayEntries = transformBirthdaysToCalendarFormat(
+      currentDate.value.getFullYear()
+    );
+    
+    // Combine regular entries with birthday entries
+    calendarEntries.value = [...regularEntries, ...birthdayEntries];
   } catch (error) {
     console.error('Failed to load calendar entries:', error);
   }
 };
+
+// Update entries when month changes
+watch(() => currentDate.value, loadEntries);
 
 const getEntriesForDate = (day: number | null) => {
   if (!day) return [];
@@ -147,7 +166,7 @@ onMounted(loadEntries);
 </script>
 
 <template>
-  <div class="calendar-container">
+   <div class="calendar-container">
     <!-- Calendar Header -->
     <div class="calendar-header">
       <button @click="previousMonth">&lt;</button>
@@ -166,7 +185,10 @@ onMounted(loadEntries);
         v-for="day in days"
         :key="day"
         class="calendar-day"
-        :class="{ empty: !day }"
+        :class="{ 
+          empty: !day,
+          'current-day': isToday(day)
+        }"
         @click="day && openAddModal(day)"
       >
         <template v-if="day">
@@ -181,11 +203,15 @@ onMounted(loadEntries);
               <span>{{ entry.title }}</span>
               <div class="entry-actions">
                 <input
+                  v-if="entry.type !== 'birthday'"
                   type="checkbox"
                   :checked="entry.completed"
                   @click.stop="toggleComplete(entry)"
                 >
-                <button @click.stop="deleteEntry(entry.id!)">×</button>
+                <button 
+                  v-if="entry.type !== 'birthday'"
+                  @click.stop="deleteEntry(entry.id!)"
+                >×</button>
               </div>
             </div>
           </div>
@@ -348,5 +374,19 @@ button {
 
 button:hover {
   background-color: #b44c13;
+}
+
+
+.current-day {
+  background-color: #fff3e0 !important;
+  border: 2px solid #ea580b !important;
+}
+
+.entry.birthday {
+  background-color: #f8bbd0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #c2185b;
+  font-weight: 500;
 }
 </style>
