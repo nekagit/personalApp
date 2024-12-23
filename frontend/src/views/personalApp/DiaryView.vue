@@ -37,7 +37,7 @@
       <template v-else>
         <div class="toolbar">
           <div v-if="currentFile" class="current-file">
-            {{ formatEntryName(currentFile.split('/').pop()) }}
+            {{ formatEntryName(getCurrentFileName) }}
           </div>
           <div class="actions">
             <button 
@@ -85,7 +85,7 @@ const md = new MarkdownIt();
 
 // State
 const diaryEntries = ref([]);
-const currentFile = ref('');
+const currentFile = ref(null); // Changed to null for initial state
 const markdownContent = ref('');
 const parsedMarkdown = ref('');
 const isEditing = ref(false);
@@ -112,18 +112,23 @@ const formatEntryName = (filename) => {
   });
 };
 
-// Load diary folder when button is clicked
+// Get current file name for display
+const getCurrentFileName = computed(() => {
+  if (!currentFile.value) return '';
+  return currentFile.value.name || '';
+});
+
 const loadDiaryFolder = async () => {
   try {
     const handle = await window.showDirectoryPicker();
-    
     diaryEntries.value = [];
+
     for await (const entry of handle.values()) {
       if (entry.name.endsWith('.md')) {
         diaryEntries.value.push({
           name: entry.name,
           path: entry.name,
-          handle: entry, // Save the file handle
+          handle: entry,
         });
       }
     }
@@ -137,43 +142,41 @@ const loadDiaryFolder = async () => {
   }
 };
 
-
-// Rest of the methods remain the same...
 const createNewEntry = async () => {
   const today = new Date().toISOString().split('T')[0];
   const newFileName = `${today}.md`;
   
-  // Add dummy handle to prevent undefined error
-  diaryEntries.value.push({
+  const newEntry = {
     name: newFileName,
     path: newFileName,
-    handle: null, // Placeholder for new entries
-  });
-
-  currentFile.value = diaryEntries.value[diaryEntries.value.length - 1];
+    handle: null,
+  };
+  
+  diaryEntries.value.push(newEntry);
+  currentFile.value = newEntry;
   markdownContent.value = `# Diary Entry - ${formatEntryName(newFileName)}\n\n`;
   originalContent.value = markdownContent.value;
   hasChanges.value = false;
   isEditing.value = true;
 };
 
-
 const loadEntry = async (entry) => {
   try {
-    currentFile.value = entry.path;
+    currentFile.value = entry;
     const file = await entry.handle.getFile();
     const text = await file.text();
+
     markdownContent.value = text;
     originalContent.value = text;
     hasChanges.value = false;
-    
-    const sanitizedText = text.replace(/\[object Object\]/g, JSON.stringify);
-    const rawHtml = md.render(sanitizedText);
+
+    const rawHtml = md.render(text);
     parsedMarkdown.value = DOMPurify.sanitize(rawHtml);
-    
+
     isEditing.value = false;
   } catch (error) {
     console.error('Error loading diary entry:', error);
+    alert('Error loading diary entry. Please try again.');
   }
 };
 
@@ -191,11 +194,11 @@ const handleEdit = () => {
 
 const saveChanges = async () => {
   try {
-    if (!currentFile.value.handle) {
-      throw new Error("No file handle available for the current entry.");
+    if (!currentFile.value?.handle) {
+      throw new Error('No file handle available for the current entry.');
     }
 
-    const fileHandle = currentFile.value.handle;
+    const fileHandle = currentFile.value.handle; // Use the file handle
     const writable = await fileHandle.createWritable();
     await writable.write(markdownContent.value);
     await writable.close();
@@ -208,7 +211,7 @@ const saveChanges = async () => {
     alert('Diary entry saved successfully!');
   } catch (error) {
     console.error('Error saving diary entry:', error);
-    alert(`Error saving diary entry: ${error.message}`);
+    alert('Error saving diary entry. Please try again.');
   }
 };
 
