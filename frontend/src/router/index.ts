@@ -5,6 +5,7 @@ import PomodoroView from "@/views/personalApp/PomodoroView.vue";
 import CalenderView from "@/views/personalApp/CalenderView.vue";
 import MarkdownView from "@/views/personalApp/MarkdownView.vue";
 import FlashCardView from "@/views/personalApp/FlashCardView.vue";
+import DiaryView from "@/views/personalApp/DiaryView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -38,6 +39,11 @@ const router = createRouter({
       path: "/flashCard",
       name: "flashCard",
       component: FlashCardView,
+    },
+    {
+      path: "/diary",
+      name: "diary",
+      component: DiaryView,
     },
   ],
 });

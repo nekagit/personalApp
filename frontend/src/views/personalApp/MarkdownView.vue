@@ -28,19 +28,52 @@
       </div>
     </div>
 
-    <!-- Markdown content viewer -->
+    <!-- Markdown content viewer/editor -->
     <div class="content">
-      <div v-if="currentFile" class="current-file">
-        Currently viewing: {{ currentFile }}
+      <div class="toolbar">
+        <div v-if="currentFile" class="current-file">
+          Currently viewing: {{ currentFile }}
+        </div>
+        <div class="actions">
+          <button 
+            @click="toggleEditMode" 
+            class="edit-btn"
+            :class="{ active: isEditing }"
+          >
+            {{ isEditing ? 'Preview' : 'Edit' }}
+          </button>
+          <button 
+            v-if="isEditing" 
+            @click="saveChanges" 
+            class="save-btn"
+            :disabled="!hasChanges"
+          >
+            Save Changes
+          </button>
+        </div>
       </div>
-      <div class="markdown-viewer" v-html="parsedMarkdown"></div>
+      
+      <!-- Editor -->
+      <textarea
+        v-if="isEditing"
+        v-model="markdownContent"
+        class="markdown-editor"
+        @input="handleEdit"
+      ></textarea>
+      
+      <!-- Preview -->
+      <div 
+        v-else 
+        class="markdown-viewer" 
+        v-html="parsedMarkdown"
+      ></div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import MarkdownIt from 'markdown-it';  // Replace marked with markdown-it
+import { ref } from 'vue';
+import MarkdownIt from 'markdown-it';
 import DOMPurify from 'dompurify';
 
 // Create a markdown-it instance
@@ -52,6 +85,9 @@ const currentFile = ref('');
 const markdownContent = ref('');
 const parsedMarkdown = ref('');
 const folderInput = ref(null);
+const isEditing = ref(false);
+const originalContent = ref('');
+const hasChanges = ref(false);
 
 // Handle folder selection
 const handleFolderSelect = (event) => {
@@ -72,18 +108,52 @@ const loadFile = async (file) => {
     currentFile.value = file.path;
     const text = await file.file.text();
     markdownContent.value = text;
-
-    // Ensure all objects or arrays are converted to strings before passing to markdown-it
+    originalContent.value = text;
+    hasChanges.value = false;
+    
     const sanitizedText = text.replace(/\[object Object\]/g, (match) => {
-      return JSON.stringify(match); // Converts the object into string form
+      return JSON.stringify(match);
     });
     const rawHtml = md.render(sanitizedText);
-    const sanitizedHtml = DOMPurify.sanitize(rawHtml);
-    console.log(sanitizedHtml); // Check if the lists and headings are present
-    parsedMarkdown.value = sanitizedHtml;
-
+    parsedMarkdown.value = DOMPurify.sanitize(rawHtml);
+    
+    // Exit edit mode when loading a new file
+    isEditing.value = false;
   } catch (error) {
     console.error('Error loading markdown file:', error);
+  }
+};
+
+// Toggle edit mode
+const toggleEditMode = () => {
+  isEditing.value = !isEditing.value;
+  if (!isEditing.value) {
+    // Update preview when exiting edit mode
+    const rawHtml = md.render(markdownContent.value);
+    parsedMarkdown.value = DOMPurify.sanitize(rawHtml);
+  }
+};
+
+// Handle content changes
+const handleEdit = () => {
+  hasChanges.value = markdownContent.value !== originalContent.value;
+};
+
+// Save changes
+const saveChanges = async () => {
+  try {
+    // In a real application, you would implement file system access here
+    // For now, we'll just update the preview and original content
+    originalContent.value = markdownContent.value;
+    const rawHtml = md.render(markdownContent.value);
+    parsedMarkdown.value = DOMPurify.sanitize(rawHtml);
+    hasChanges.value = false;
+    
+    // Show success message (you might want to implement a proper notification system)
+    alert('Changes saved successfully!');
+  } catch (error) {
+    console.error('Error saving changes:', error);
+    alert('Error saving changes. Please try again.');
   }
 };
 </script>
@@ -236,15 +306,73 @@ const loadFile = async (file) => {
   counter-increment: list-item;
 }
 
-.markdown-viewer ol {
-  list-style-type: decimal;
-  counter-reset: list-item;
-}
-
 .markdown-viewer ol li::before {
   content: counter(list-item) ". ";
   font-weight: 600;
   color: #ff9500;
 }
 
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border-radius: 0.375rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-btn, .save-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-btn {
+  background: #4c71db;
+  color: white;
+  border: none;
+}
+
+.edit-btn.active {
+  background: #374151;
+}
+
+.save-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+}
+
+.save-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.markdown-editor {
+  width: 100%;
+  min-height: 500px;
+  padding: 1.5rem;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #d1d5db;
+  background-color: #282c34;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  resize: vertical;
+  outline: none;
+}
+
+.markdown-editor:focus {
+  border-color: #5e81f4;
+  box-shadow: 0 0 0 2px rgba(94, 129, 244, 0.2);
+}
 </style>

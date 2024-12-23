@@ -1,25 +1,27 @@
 <template>
-<div class="min-h-screen flex items-center justify-center">
-    <div class="pomodoro-timer bg-white rounded-lg shadow-xl p-8 w-96">
-      <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">{{ title }}</h1>
-      
-     <div class="timer-display text-6xl font-mono text-center mb-8">
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="pomodoro-timer bg-white rounded-lg shadow-2xl p-8 w-96">
+      <h1 class="text-3xl font-bold text-center mb-6 text-[#111828]">
+        {{ title }}
+      </h1>
+
+      <div class="timer-display text-6xl font-mono text-center mb-8 text-[#fe4500]">
         {{ formatTime(timeLeft) }}
       </div>
-      
+
       <div class="flex justify-center mb-8">
         <button
           v-if="!isActive"
           @click="startTimer"
           :disabled="isStartDisabled"
-          class="px-6 py-3 bg-[#ea580b] text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-6 py-3 bg-[#fe4500] text-white rounded-lg shadow-md hover:bg-[#d83b00] transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Start Focus
         </button>
         <button
           v-else
           @click="stopTimer"
-          class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          class="px-6 py-3 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition"
         >
           Stop
         </button>
@@ -28,33 +30,15 @@
       <div v-if="sessionComplete" class="text-center mb-6">
         <button
           @click="startBreak"
-          class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          class="px-6 py-3 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition"
         >
           Start Break
-        </button>
-      </div>
-      
-        <button
-          v-else
-          @click="stopTimer"
-          class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-        >
-          Stop
         </button>
       </div>
 
-      <div v-if="sessionComplete" class="text-center mb-6">
-        <button
-          @click="startBreak"
-          class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          Start Break
-        </button>
-      </div>
-      
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-4 mb-6">
         <div class="input-group">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-[#111828] mb-2">
             Work Time (min)
           </label>
           <input
@@ -63,11 +47,11 @@
             min="1"
             max="60"
             :disabled="isActive"
-            class="w-full p-2 border rounded-md"
+            class="w-full p-2 border rounded-md focus:ring focus:ring-[#fe4500]"
           />
         </div>
         <div class="input-group">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-[#111828] mb-2">
             Break Time (min)
           </label>
           <input
@@ -76,16 +60,20 @@
             min="1"
             max="60"
             :disabled="isActive"
-            class="w-full p-2 border rounded-md"
+            class="w-full p-2 border rounded-md focus:ring focus:ring-[#fe4500]"
           />
         </div>
       </div>
-      
+
       <div v-if="isBreak" class="mt-6 text-center">
-        <p class="text-xl font-semibold text-blue-600">Break time! 🎉</p>
+        <p class="text-xl font-semibold text-[#fe4500]">
+          Break time! 🎉
+        </p>
       </div>
     </div>
+  </div>
 </template>
+
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
