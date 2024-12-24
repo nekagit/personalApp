@@ -183,7 +183,7 @@ onMounted(loadEntries);
       <!-- Calendar Days -->
       <div
         v-for="day in days"
-        :key="day"
+        :key="day?.toLocaleString()"
         class="calendar-day"
         :class="{ 
           empty: !day,

@@ -1,6 +1,6 @@
 <template>
   <div class="markdown-explorer">
-    <!-- Sidebar with file explorer -->
+    <!-- Existing sidebar -->
     <div class="sidebar">
       <div class="folder-select">
         <input
@@ -15,7 +15,6 @@
         </button>
       </div>
       
-      <!-- File tree -->
       <div class="file-tree">
         <div
           v-for="file in files"
@@ -28,48 +27,95 @@
       </div>
     </div>
 
-    <!-- Markdown content viewer/editor -->
-    <div class="content">
-      <div class="toolbar">
-        <div v-if="currentFile" class="current-file">
-          Currently viewing: {{ currentFile }}
+    <!-- Main content area with split view support -->
+    <div class="content-container">
+      <!-- Original content viewer -->
+      <div class="content" :class="{ 'with-revision': showRevisionEditor }">
+        <div class="toolbar">
+          <div v-if="currentFile" class="current-file">
+            Currently viewing: {{ currentFile }}
+            <button 
+              @click="createNewRevision" 
+              class="revision-btn"
+              v-if="currentFile"
+            >
+              Create Revision Entry
+            </button>
+          </div>
+          <div class="actions">
+            <button 
+              @click="toggleEditMode" 
+              class="edit-btn"
+              :class="{ active: isEditing }"
+            >
+              {{ isEditing ? 'Preview' : 'Edit' }}
+            </button>
+            <button 
+              v-if="isEditing" 
+              @click="saveChanges" 
+              class="save-btn"
+              :disabled="!hasChanges"
+            >
+              Save Changes
+            </button>
+          </div>
         </div>
-        <div class="actions">
-          <button 
-            @click="toggleEditMode" 
-            class="edit-btn"
-            :class="{ active: isEditing }"
-          >
-            {{ isEditing ? 'Preview' : 'Edit' }}
-          </button>
-          <button 
-            v-if="isEditing" 
-            @click="saveChanges" 
-            class="save-btn"
-            :disabled="!hasChanges"
-          >
-            Save Changes
-          </button>
+        
+        <textarea
+          v-if="isEditing"
+          v-model="markdownContent"
+          class="markdown-editor"
+          @input="handleEdit"
+        ></textarea>
+        
+        <div 
+          v-else 
+          class="markdown-viewer" 
+          v-html="parsedMarkdown"
+        ></div>
+      </div>
+
+      <!-- Revision editor -->
+      <div v-if="showRevisionEditor" class="revision-editor">
+        <div class="toolbar">
+          <div class="current-file">
+            New Revision Entry
+          </div>
+          <div class="actions">
+            <button 
+              @click="saveRevision" 
+              class="save-btn"
+              :disabled="!revisionContent.trim()"
+            >
+              Save Revision
+            </button>
+            <button 
+              @click="closeRevisionEditor" 
+              class="close-btn"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+        
+        <div class="revision-form">
+          <input 
+            v-model="revisionTitle"
+            placeholder="Enter revision title"
+            class="revision-title"
+            type="text"
+          />
+          <textarea
+            v-model="revisionContent"
+            class="markdown-editor"
+            placeholder="Write your revision notes here..."
+          ></textarea>
         </div>
       </div>
-      
-      <!-- Editor -->
-      <textarea
-        v-if="isEditing"
-        v-model="markdownContent"
-        class="markdown-editor"
-        @input="handleEdit"
-      ></textarea>
-      
-      <!-- Preview -->
-      <div 
-        v-else 
-        class="markdown-viewer" 
-        v-html="parsedMarkdown"
-      ></div>
     </div>
   </div>
 </template>
+
 
 <script setup>
 import { ref } from 'vue';
@@ -88,6 +134,12 @@ const folderInput = ref(null);
 const isEditing = ref(false);
 const originalContent = ref('');
 const hasChanges = ref(false);
+// New state for revision functionality
+const showRevisionEditor = ref(false);
+const revisionContent = ref('');
+const revisionTitle = ref('');
+const REVISIONS_PATH = '/home/nenad/Documents/Cybersecurity/Messers Course/Revision';
+
 
 // Handle folder selection
 const handleFolderSelect = (event) => {
@@ -154,6 +206,50 @@ const saveChanges = async () => {
   } catch (error) {
     console.error('Error saving changes:', error);
     alert('Error saving changes. Please try again.');
+  }
+};
+
+// New functions for revision handling
+const createNewRevision = () => {
+  showRevisionEditor.value = true;
+  // Pre-fill revision title based on current file
+  const baseName = currentFile.value.split('/').pop().replace('.md', '');
+  revisionTitle.value = `${baseName}_revision_${new Date().toISOString().split('T')[0]}`;
+};
+
+const closeRevisionEditor = () => {
+  showRevisionEditor.value = false;
+  revisionContent.value = '';
+  revisionTitle.value = '';
+};
+
+const saveRevision = async () => {
+  try {
+    const fileName = `${revisionTitle.value}.md`;
+    const filePath = `${REVISIONS_PATH}/${fileName}`;
+    
+    // Create revision content with metadata
+    const revisionData = `# ${revisionTitle.value}\n\n` +
+      `Original File: ${currentFile.value}\n` +
+      `Created: ${new Date().toISOString()}\n\n` +
+      `## Notes\n\n${revisionContent.value}`;
+    
+    // In a real application, you would implement file system access here
+    // For demonstration, we'll show an alert
+    console.log('Saving revision to:', filePath);
+    console.log('Content:', revisionData);
+    
+
+    const newFileHandle = await directoryHandle.value.getFileHandle(fileName, { create: true });
+    const writable = await newFileHandle.createWritable();
+    await writable.write(revisionData);
+    await writable.close();
+    
+    alert(`Revision would be saved to: ${filePath}`);
+    closeRevisionEditor();
+  } catch (error) {
+    console.error('Error saving revision:', error);
+    alert('Error saving revision. Please try again.');
   }
 };
 </script>
@@ -373,6 +469,83 @@ const saveChanges = async () => {
 
 .markdown-editor:focus {
   border-color: #5e81f4;
+  box-shadow: 0 0 0 2px rgba(94, 129, 244, 0.2);
+}
+
+
+/* New styles for revision functionality */
+.content-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.content.with-revision {
+  flex: 0 0 50%;
+}
+
+.revision-editor {
+  flex: 0 0 50%;
+  padding: 2rem;
+  background: #f8fafc;
+  border-left: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.revision-btn {
+  margin-left: 1rem;
+  padding: 0.5rem 1rem;
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.revision-btn:hover {
+  background: #7c3aed;
+}
+
+.close-btn {
+  padding: 0.5rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.close-btn:hover {
+  background: #dc2626;
+}
+
+.revision-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+}
+
+.revision-title {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+}
+
+.revision-title:focus {
+  border-color: #5e81f4;
+  outline: none;
   box-shadow: 0 0 0 2px rgba(94, 129, 244, 0.2);
 }
 </style>
