@@ -24,6 +24,14 @@
 import { markdownService } from '@/services/markdownService';
 import { computed, ref, watch } from 'vue';
 import EditorToolbar from './EditorToolbar.vue';
+import { useMarkdownStore } from '@/stores/markdownStore';
+import {storeToRefs}  from 'pinia';
+
+// Initialize store and extract reactive state
+const store = useMarkdownStore();
+const {
+  fileHandles
+} = storeToRefs(store);
 
 const props = defineProps({
   content: {
@@ -50,7 +58,6 @@ const parsedMarkdown = computed(() =>
 watch(() => props.content, (newContent) => {
   localContent.value = newContent;
   originalContent.value = newContent;
-  hasChanges.value = false;
 });
 
 

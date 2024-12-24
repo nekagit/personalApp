@@ -106,7 +106,6 @@
           title="pdf"
         ></iframe>
       </div>
-
       <!-- Revision editor -->
       <div v-if="showRevisionEditor" class="revision-editor">
         <div class="toolbar">
