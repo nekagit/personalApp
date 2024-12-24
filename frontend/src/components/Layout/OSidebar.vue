@@ -8,8 +8,8 @@
 </template>
 
 <script setup lang="ts">
-import ACompanyHeader from '../atoms/ACompanyHeader.vue';
-import ANavigationLinks from '../atoms/ANavigationLinks.vue';
+import ACompanyHeader from './ACompanyHeader.vue';
+import ANavigationLinks from './ANavigationLinks.vue';
 import OUserNavigation from './OUserNavigation.vue';
 
 </script>

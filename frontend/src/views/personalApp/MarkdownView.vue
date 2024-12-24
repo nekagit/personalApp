@@ -34,6 +34,16 @@
         <div class="toolbar">
           <div v-if="currentFile" class="current-file">
             Currently viewing: {{ currentFile }}
+            <button @click="openPdfSelector" class="pdf-btn" v-if="currentFile">
+              Open Related PDF
+            </button>
+            <input
+              type="file"
+              accept=".pdf"
+              ref="pdfInput"
+              @change="handlePdfSelect"
+              style="display: none"
+            />
             <button
               @click="createNewRevision"
               class="revision-btn"
@@ -43,7 +53,7 @@
             </button>
           </div>
           <div class="actions">
-            <button
+            <!-- <button
               @click="generateFlashcards"
               class="flashcards-btn"
               v-if="currentFile"
@@ -52,7 +62,7 @@
               {{
                 isGeneratingFlashcards ? "Generating..." : "Create Flashcards"
               }}
-            </button>
+            </button> -->
             <button
               @click="toggleEditMode"
               class="edit-btn"
@@ -79,6 +89,22 @@
         ></textarea>
 
         <div v-else class="markdown-viewer" v-html="parsedMarkdown"></div>
+      </div>
+      <!-- PDF viewer -->
+      <div v-if="showPdfViewer" class="pdf-viewer">
+        <div class="toolbar">
+          <div class="current-file">
+            PDF: {{ currentPdfName }}
+            <button @click="closePdfViewer" class="close-btn">Close PDF</button>
+          </div>
+        </div>
+        <iframe
+          v-if="pdfUrl"
+          :src="pdfUrl"
+          class="pdf-frame"
+          type="application/pdf"
+          title="pdf"
+        ></iframe>
       </div>
 
       <!-- Revision editor -->
@@ -120,14 +146,17 @@
 <script setup>
 import DOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
-import { ref } from "vue";
+import { ref, onUnmounted } from "vue";
 
 // Create a markdown-it instance
 const md = new MarkdownIt();
 
 // State
+// Modified state to store file handles
 const files = ref([]);
+const fileHandles = ref(new Map()); // Store file handles for direct access
 const currentFile = ref("");
+const currentFileHandle = ref(null);
 const markdownContent = ref("");
 const parsedMarkdown = ref("");
 const folderInput = ref(null);
@@ -138,29 +167,74 @@ const hasChanges = ref(false);
 const showRevisionEditor = ref(false);
 const revisionContent = ref("");
 const revisionTitle = ref("");
-const REVISIONS_PATH =
-  "/home/nenad/Documents/Cybersecurity/Messers Course/Revision";
+
+// New PDF-related state
+const showPdfViewer = ref(false);
+const pdfUrl = ref("");
+const currentPdfName = ref("");
+const pdfInput = ref(null);
+
 // Add state for directory handle
 const directoryHandle = ref(null);
 
-// Handle folder selection
-const handleFolderSelect = (event) => {
-  const fileList = event.target.files;
-  files.value = Array.from(fileList)
-    .filter((file) => file.name.endsWith(".md"))
-    .map((file) => ({
-      name: file.name,
-      path: file.webkitRelativePath,
-      file: file,
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+
+// Replace handleFolderSelect with this new version
+const handleFolderSelect = async (event) => {
+  try {
+    // Request directory access first
+    directoryHandle.value = await window.showDirectoryPicker({
+      mode: "readwrite",
+    });
+    
+    // Get all markdown files recursively
+    const mdFiles = [];
+    const fileHandleMap = new Map();
+    
+    async function* getFilesRecursively(dirHandle, path = "") {
+      for await (const entry of dirHandle.values()) {
+        const newPath = path ? `${path}/${entry.name}` : entry.name;
+        
+        if (entry.kind === "directory") {
+          yield* getFilesRecursively(entry, newPath);
+        } else if (entry.name.endsWith(".md")) {
+          yield { handle: entry, path: newPath };
+        }
+      }
+    }
+    
+    for await (const fileEntry of getFilesRecursively(directoryHandle.value)) {
+      const file = await fileEntry.handle.getFile();
+      mdFiles.push({
+        name: file.name,
+        path: fileEntry.path,
+        file: file
+      });
+      fileHandleMap.set(fileEntry.path, fileEntry.handle);
+    }
+    
+    files.value = mdFiles.sort((a, b) => a.name.localeCompare(b.name));
+    fileHandles.value = fileHandleMap;
+    
+  } catch (error) {
+    console.error("Error accessing directory:", error);
+    alert("Error accessing directory. Please try again.");
+  }
 };
 
-// Load file and parse markdown
+
+
+// Modified loadFile function
 const loadFile = async (file) => {
   try {
     currentFile.value = file.path;
-    const text = await file.file.text();
+    currentFileHandle.value = fileHandles.value.get(file.path);
+    
+    if (!currentFileHandle.value) {
+      throw new Error("File handle not found");
+    }
+    
+    const fileData = await currentFileHandle.value.getFile();
+    const text = await fileData.text();
     markdownContent.value = text;
     originalContent.value = text;
     hasChanges.value = false;
@@ -171,10 +245,10 @@ const loadFile = async (file) => {
     const rawHtml = md.render(sanitizedText);
     parsedMarkdown.value = DOMPurify.sanitize(rawHtml);
 
-    // Exit edit mode when loading a new file
     isEditing.value = false;
   } catch (error) {
     console.error("Error loading markdown file:", error);
+    alert("Error loading file. Please try again.");
   }
 };
 
@@ -192,22 +266,44 @@ const toggleEditMode = () => {
 const handleEdit = () => {
   hasChanges.value = markdownContent.value !== originalContent.value;
 };
+// Add this new function to handle file system access
+const requestWriteAccess = async () => {
+  try {
+    if (!directoryHandle.value) {
+      const hasAccess = await requestDirectoryAccess();
+      if (!hasAccess) {
+        throw new Error("Directory access is required to save changes.");
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error("Error requesting write access:", error);
+    return false;
+  }
+};
 
-// Save changes
+// Modified saveChanges function
 const saveChanges = async () => {
   try {
-    // In a real application, you would implement file system access here
-    // For now, we'll just update the preview and original content
+    if (!currentFileHandle.value) {
+      throw new Error("No file handle available. Please reload the folder.");
+    }
+
+    // Create a writable stream directly using the stored file handle
+    const writable = await currentFileHandle.value.createWritable();
+    await writable.write(markdownContent.value);
+    await writable.close();
+
+    // Update local state
     originalContent.value = markdownContent.value;
     const rawHtml = md.render(markdownContent.value);
     parsedMarkdown.value = DOMPurify.sanitize(rawHtml);
     hasChanges.value = false;
 
-    // Show success message (you might want to implement a proper notification system)
     alert("Changes saved successfully!");
   } catch (error) {
     console.error("Error saving changes:", error);
-    alert("Error saving changes. Please try again.");
+    alert(`Error saving changes: ${error.message}`);
   }
 };
 
@@ -298,8 +394,8 @@ const saveRevision = async () => {
 // Function to generate flashcards
 const generateFlashcards = async () => {
   try {
-    const storedApiKey = import.meta.env.GPT_API_KEY;
-
+    const storedApiKey = import.meta.env.VITE_GPT_API_KEY;
+    console.log(storedApiKey)
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -343,6 +439,36 @@ const generateFlashcards = async () => {
     isGeneratingFlashcards.value = false;
   }
 };
+
+// New PDF-related functions
+const openPdfSelector = () => {
+  pdfInput.value.click();
+};
+
+const handlePdfSelect = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    currentPdfName.value = file.name;
+    pdfUrl.value = URL.createObjectURL(file);
+    showPdfViewer.value = true;
+  }
+};
+
+const closePdfViewer = () => {
+  showPdfViewer.value = false;
+  if (pdfUrl.value) {
+    URL.revokeObjectURL(pdfUrl.value);
+    pdfUrl.value = "";
+  }
+  currentPdfName.value = "";
+};
+
+// Clean up when component is unmounted
+onUnmounted(() => {
+  if (pdfUrl.value) {
+    URL.revokeObjectURL(pdfUrl.value);
+  }
+});
 </script>
 
 <style scoped>
@@ -640,7 +766,6 @@ const generateFlashcards = async () => {
   box-shadow: 0 0 0 2px rgba(94, 129, 244, 0.2);
 }
 
-
 .flashcards-btn {
   padding: 0.5rem 1rem;
   background: #2563eb;
@@ -661,4 +786,41 @@ const generateFlashcards = async () => {
   cursor: not-allowed;
 }
 
+/* New PDF-related styles */
+.content.with-pdf {
+  flex: 0 0 50%;
+}
+
+.pdf-viewer {
+  flex: 0 0 50%;
+  padding: 2rem;
+  background: #f8fafc;
+  border-left: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-frame {
+  flex: 1;
+  border: none;
+  border-radius: 0.375rem;
+  background: white;
+  width: 100%;
+  height: 100%;
+}
+
+.pdf-btn {
+  margin-left: 1rem;
+  padding: 0.5rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pdf-btn:hover {
+  background: #dc2626;
+}
 </style>
