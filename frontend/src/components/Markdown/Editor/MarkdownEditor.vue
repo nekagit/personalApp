@@ -1,7 +1,6 @@
 <template>
   <div class="content" :class="{ 'with-revision': showRevisionEditor }">
     <EditorToolbar
-      :current-file="currentFile"
       :is-editing="isEditing"
       :has-changes="hasChanges"
       @toggle-edit="toggleEditMode"
@@ -31,14 +30,10 @@ const props = defineProps({
     type: String,
     required: true
   },
-  currentFile: {
-    type: String,
-    default: ''
-  },
   showRevisionEditor: {
     type: Boolean,
     default: false
-  }
+  },
 });
 
 const emit = defineEmits(['update:content', 'save', 'create-revision', 'open-pdf']);
@@ -57,6 +52,7 @@ watch(() => props.content, (newContent) => {
   originalContent.value = newContent;
   hasChanges.value = false;
 });
+
 
 const toggleEditMode = () => {
   isEditing.value = !isEditing.value;

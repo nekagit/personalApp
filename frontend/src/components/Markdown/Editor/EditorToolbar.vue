@@ -10,12 +10,15 @@
       </button>
     </div>
     <div class="actions">
+      <CreateMarkdownFile v-if="directoryHandle != null" @file-created="handleNewFile" />
+
       <button
+        v-if="currentFile != ''"
         @click="$emit('toggle-edit')"
         class="edit-btn"
         :class="{ active: isEditing }"
       >
-        {{ isEditing ? "Preview" : "Edit" }}
+        {{ isEditing  ? "Preview" : "Edit" }}
       </button>
       <button
         v-if="isEditing"
@@ -30,11 +33,45 @@
 </template>
 
 <script setup>
-defineProps({
-  currentFile: String,
+import CreateMarkdownFile from '@/components/Markdown/Editor/CreateMarkdownFile.vue';
+import { markdownService } from '@/services/markdownService';
+import { fileSystemService } from '@/services/fileSystem';
+import { useMarkdownStore } from '@/stores/markdownStore';
+import {storeToRefs}  from 'pinia';
+
+// Initialize store and extract reactive state
+const store = useMarkdownStore();
+const {
+  files,
+  currentFile,
+  directoryHandle,
+  fileHandles
+} = storeToRefs(store);
+
+const props = defineProps({
   isEditing: Boolean,
   hasChanges: Boolean
 });
+const handleNewFile = async ({ filename, content }) => {
+  try {
+    console.log(directoryHandle)
+    if (!directoryHandle) {
+      throw new Error('No directory access');
+    }
+    
+    const fileHandle = await directoryHandle.value.getFileHandle(filename, { create: true });
+    await markdownService.saveFile(fileHandle, content);
+    
+    // Refresh file list
+    const { files: newFiles, fileHandles: newHandles } = 
+      await fileSystemService.getFilesRecursively(directoryHandle.value);
+    files.value = newFiles;
+    fileHandles.value = newHandles;
+  } catch (error) {
+    console.error('Error creating file:', error);
+    alert(`Error creating file: ${error.message}`);
+  }
+};
 
 defineEmits(['toggle-edit', 'save', 'create-revision', 'open-pdf']);
 </script>
