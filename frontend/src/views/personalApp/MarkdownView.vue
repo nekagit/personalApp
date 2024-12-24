@@ -139,7 +139,8 @@ const showRevisionEditor = ref(false);
 const revisionContent = ref('');
 const revisionTitle = ref('');
 const REVISIONS_PATH = '/home/nenad/Documents/Cybersecurity/Messers Course/Revision';
-
+// Add state for directory handle
+const directoryHandle = ref(null);
 
 // Handle folder selection
 const handleFolderSelect = (event) => {
@@ -222,34 +223,68 @@ const closeRevisionEditor = () => {
   revisionContent.value = '';
   revisionTitle.value = '';
 };
+// Function to request directory access
+const requestDirectoryAccess = async () => {
+  try {
+    // Request access to the file system
+    directoryHandle.value = await window.showDirectoryPicker({
+      mode: 'readwrite',
+      startIn: 'documents'
+    });
+    return true;
+  } catch (error) {
+    console.error('Error accessing directory:', error);
+    return false;
+  }
+};
 
+// Modified saveRevision function
 const saveRevision = async () => {
   try {
+    // Request directory access if we don't have it
+    if (!directoryHandle.value) {
+      const hasAccess = await requestDirectoryAccess();
+      if (!hasAccess) {
+        alert('Directory access is required to save revisions.');
+        return;
+      }
+    }
+
     const fileName = `${revisionTitle.value}.md`;
-    const filePath = `${REVISIONS_PATH}/${fileName}`;
     
     // Create revision content with metadata
     const revisionData = `# ${revisionTitle.value}\n\n` +
       `Original File: ${currentFile.value}\n` +
       `Created: ${new Date().toISOString()}\n\n` +
       `## Notes\n\n${revisionContent.value}`;
-    
-    // In a real application, you would implement file system access here
-    // For demonstration, we'll show an alert
-    console.log('Saving revision to:', filePath);
-    console.log('Content:', revisionData);
-    
 
-    const newFileHandle = await directoryHandle.value.getFileHandle(fileName, { create: true });
-    const writable = await newFileHandle.createWritable();
-    await writable.write(revisionData);
-    await writable.close();
-    
-    alert(`Revision would be saved to: ${filePath}`);
-    closeRevisionEditor();
+    try {
+      // Get or create the revisions subdirectory
+      let revisionsDir;
+      try {
+        revisionsDir = await directoryHandle.value.getDirectoryHandle('revisions', {
+          create: true
+        });
+      } catch (error) {
+        console.error('Error creating revisions directory:', error);
+        throw new Error('Could not create revisions directory');
+      }
+
+      // Create and write to the file
+      const fileHandle = await revisionsDir.getFileHandle(fileName, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(revisionData);
+      await writable.close();
+
+      alert('Revision saved successfully!');
+      closeRevisionEditor();
+    } catch (error) {
+      console.error('Error writing file:', error);
+      throw new Error('Could not write revision file');
+    }
   } catch (error) {
     console.error('Error saving revision:', error);
-    alert('Error saving revision. Please try again.');
+    alert(`Error saving revision: ${error.message}`);
   }
 };
 </script>
