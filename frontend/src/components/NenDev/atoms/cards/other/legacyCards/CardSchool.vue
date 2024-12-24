@@ -92,7 +92,7 @@
   </div>
 </template>
 
-<style>
+<style scoped>
 *,
 *::before,
 *::after {

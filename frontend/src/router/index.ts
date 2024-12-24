@@ -3,7 +3,7 @@ import HomeView from "../views/personalApp/HomeView.vue";
 import TodoView from "@/views/personalApp/TodoView.vue";
 import PomodoroView from "@/views/personalApp/PomodoroView.vue";
 import CalenderView from "@/views/personalApp/CalenderView.vue";
-import MarkdownView from "@/views/personalApp/MarkdownView.vue";
+import Markdown from "@/views/personalApp/Markdown.vue";
 import FlashCardView from "@/views/personalApp/FlashCardView.vue";
 import DiaryView from "@/views/personalApp/DiaryView.vue";
 
@@ -33,7 +33,7 @@ const router = createRouter({
     {
       path: "/markdown",
       name: "markdown",
-      component: MarkdownView,
+      component: Markdown,
     },
     {
       path: "/flashCard",

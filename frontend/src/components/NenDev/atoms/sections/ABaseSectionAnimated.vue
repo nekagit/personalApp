@@ -22,7 +22,7 @@
   </template>
   
 
-<style>
+<style scoped>
 .login-box {
   position: relative;
   padding: 20px;

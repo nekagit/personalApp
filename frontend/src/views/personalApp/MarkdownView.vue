@@ -266,21 +266,6 @@ const toggleEditMode = () => {
 const handleEdit = () => {
   hasChanges.value = markdownContent.value !== originalContent.value;
 };
-// Add this new function to handle file system access
-const requestWriteAccess = async () => {
-  try {
-    if (!directoryHandle.value) {
-      const hasAccess = await requestDirectoryAccess();
-      if (!hasAccess) {
-        throw new Error("Directory access is required to save changes.");
-      }
-    }
-    return true;
-  } catch (error) {
-    console.error("Error requesting write access:", error);
-    return false;
-  }
-};
 
 // Modified saveChanges function
 const saveChanges = async () => {
