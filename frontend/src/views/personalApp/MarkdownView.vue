@@ -14,7 +14,7 @@
           Select Folder
         </button>
       </div>
-      
+
       <div class="file-tree">
         <div
           v-for="file in files"
@@ -34,8 +34,8 @@
         <div class="toolbar">
           <div v-if="currentFile" class="current-file">
             Currently viewing: {{ currentFile }}
-            <button 
-              @click="createNewRevision" 
+            <button
+              @click="createNewRevision"
               class="revision-btn"
               v-if="currentFile"
             >
@@ -43,16 +43,26 @@
             </button>
           </div>
           <div class="actions">
-            <button 
-              @click="toggleEditMode" 
+            <button
+              @click="generateFlashcards"
+              class="flashcards-btn"
+              v-if="currentFile"
+              :disabled="isGeneratingFlashcards"
+            >
+              {{
+                isGeneratingFlashcards ? "Generating..." : "Create Flashcards"
+              }}
+            </button>
+            <button
+              @click="toggleEditMode"
               class="edit-btn"
               :class="{ active: isEditing }"
             >
-              {{ isEditing ? 'Preview' : 'Edit' }}
+              {{ isEditing ? "Preview" : "Edit" }}
             </button>
-            <button 
-              v-if="isEditing" 
-              @click="saveChanges" 
+            <button
+              v-if="isEditing"
+              @click="saveChanges"
               class="save-btn"
               :disabled="!hasChanges"
             >
@@ -60,46 +70,37 @@
             </button>
           </div>
         </div>
-        
+
         <textarea
           v-if="isEditing"
           v-model="markdownContent"
           class="markdown-editor"
           @input="handleEdit"
         ></textarea>
-        
-        <div 
-          v-else 
-          class="markdown-viewer" 
-          v-html="parsedMarkdown"
-        ></div>
+
+        <div v-else class="markdown-viewer" v-html="parsedMarkdown"></div>
       </div>
 
       <!-- Revision editor -->
       <div v-if="showRevisionEditor" class="revision-editor">
         <div class="toolbar">
-          <div class="current-file">
-            New Revision Entry
-          </div>
+          <div class="current-file">New Revision Entry</div>
           <div class="actions">
-            <button 
-              @click="saveRevision" 
+            <button
+              @click="saveRevision"
               class="save-btn"
               :disabled="!revisionContent.trim()"
             >
               Save Revision
             </button>
-            <button 
-              @click="closeRevisionEditor" 
-              class="close-btn"
-            >
+            <button @click="closeRevisionEditor" class="close-btn">
               Close
             </button>
           </div>
         </div>
-        
+
         <div class="revision-form">
-          <input 
+          <input
             v-model="revisionTitle"
             placeholder="Enter revision title"
             class="revision-title"
@@ -116,29 +117,29 @@
   </div>
 </template>
 
-
 <script setup>
-import { ref } from 'vue';
-import MarkdownIt from 'markdown-it';
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
+import MarkdownIt from "markdown-it";
+import { ref } from "vue";
 
 // Create a markdown-it instance
 const md = new MarkdownIt();
 
 // State
 const files = ref([]);
-const currentFile = ref('');
-const markdownContent = ref('');
-const parsedMarkdown = ref('');
+const currentFile = ref("");
+const markdownContent = ref("");
+const parsedMarkdown = ref("");
 const folderInput = ref(null);
 const isEditing = ref(false);
-const originalContent = ref('');
+const originalContent = ref("");
 const hasChanges = ref(false);
 // New state for revision functionality
 const showRevisionEditor = ref(false);
-const revisionContent = ref('');
-const revisionTitle = ref('');
-const REVISIONS_PATH = '/home/nenad/Documents/Cybersecurity/Messers Course/Revision';
+const revisionContent = ref("");
+const revisionTitle = ref("");
+const REVISIONS_PATH =
+  "/home/nenad/Documents/Cybersecurity/Messers Course/Revision";
 // Add state for directory handle
 const directoryHandle = ref(null);
 
@@ -146,11 +147,11 @@ const directoryHandle = ref(null);
 const handleFolderSelect = (event) => {
   const fileList = event.target.files;
   files.value = Array.from(fileList)
-    .filter(file => file.name.endsWith('.md'))
-    .map(file => ({
+    .filter((file) => file.name.endsWith(".md"))
+    .map((file) => ({
       name: file.name,
       path: file.webkitRelativePath,
-      file: file
+      file: file,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 };
@@ -163,17 +164,17 @@ const loadFile = async (file) => {
     markdownContent.value = text;
     originalContent.value = text;
     hasChanges.value = false;
-    
+
     const sanitizedText = text.replace(/\[object Object\]/g, (match) => {
       return JSON.stringify(match);
     });
     const rawHtml = md.render(sanitizedText);
     parsedMarkdown.value = DOMPurify.sanitize(rawHtml);
-    
+
     // Exit edit mode when loading a new file
     isEditing.value = false;
   } catch (error) {
-    console.error('Error loading markdown file:', error);
+    console.error("Error loading markdown file:", error);
   }
 };
 
@@ -201,12 +202,12 @@ const saveChanges = async () => {
     const rawHtml = md.render(markdownContent.value);
     parsedMarkdown.value = DOMPurify.sanitize(rawHtml);
     hasChanges.value = false;
-    
+
     // Show success message (you might want to implement a proper notification system)
-    alert('Changes saved successfully!');
+    alert("Changes saved successfully!");
   } catch (error) {
-    console.error('Error saving changes:', error);
-    alert('Error saving changes. Please try again.');
+    console.error("Error saving changes:", error);
+    alert("Error saving changes. Please try again.");
   }
 };
 
@@ -214,26 +215,26 @@ const saveChanges = async () => {
 const createNewRevision = () => {
   showRevisionEditor.value = true;
   // Pre-fill revision title based on current file
-  const baseName = currentFile.value.split('/').pop().replace('.md', '');
-  revisionTitle.value = `${baseName}_revision_${new Date().toISOString().split('T')[0]}`;
+  const baseName = currentFile.value.split("/").pop().replace(".md", "");
+  revisionTitle.value = `${baseName}_revision_${new Date().toISOString().split("T")[0]}`;
 };
 
 const closeRevisionEditor = () => {
   showRevisionEditor.value = false;
-  revisionContent.value = '';
-  revisionTitle.value = '';
+  revisionContent.value = "";
+  revisionTitle.value = "";
 };
 // Function to request directory access
 const requestDirectoryAccess = async () => {
   try {
     // Request access to the file system
     directoryHandle.value = await window.showDirectoryPicker({
-      mode: 'readwrite',
-      startIn: 'documents'
+      mode: "readwrite",
+      startIn: "documents",
     });
     return true;
   } catch (error) {
-    console.error('Error accessing directory:', error);
+    console.error("Error accessing directory:", error);
     return false;
   }
 };
@@ -245,15 +246,16 @@ const saveRevision = async () => {
     if (!directoryHandle.value) {
       const hasAccess = await requestDirectoryAccess();
       if (!hasAccess) {
-        alert('Directory access is required to save revisions.');
+        alert("Directory access is required to save revisions.");
         return;
       }
     }
 
     const fileName = `${revisionTitle.value}.md`;
-    
+
     // Create revision content with metadata
-    const revisionData = `# ${revisionTitle.value}\n\n` +
+    const revisionData =
+      `# ${revisionTitle.value}\n\n` +
       `Original File: ${currentFile.value}\n` +
       `Created: ${new Date().toISOString()}\n\n` +
       `## Notes\n\n${revisionContent.value}`;
@@ -262,29 +264,83 @@ const saveRevision = async () => {
       // Get or create the revisions subdirectory
       let revisionsDir;
       try {
-        revisionsDir = await directoryHandle.value.getDirectoryHandle('revisions', {
-          create: true
-        });
+        revisionsDir = await directoryHandle.value.getDirectoryHandle(
+          "revisions",
+          {
+            create: true,
+          }
+        );
       } catch (error) {
-        console.error('Error creating revisions directory:', error);
-        throw new Error('Could not create revisions directory');
+        console.error("Error creating revisions directory:", error);
+        throw new Error("Could not create revisions directory");
       }
 
       // Create and write to the file
-      const fileHandle = await revisionsDir.getFileHandle(fileName, { create: true });
+      const fileHandle = await revisionsDir.getFileHandle(fileName, {
+        create: true,
+      });
       const writable = await fileHandle.createWritable();
       await writable.write(revisionData);
       await writable.close();
 
-      alert('Revision saved successfully!');
+      alert("Revision saved successfully!");
       closeRevisionEditor();
     } catch (error) {
-      console.error('Error writing file:', error);
-      throw new Error('Could not write revision file');
+      console.error("Error writing file:", error);
+      throw new Error("Could not write revision file");
     }
   } catch (error) {
-    console.error('Error saving revision:', error);
+    console.error("Error saving revision:", error);
     alert(`Error saving revision: ${error.message}`);
+  }
+};
+
+// Function to generate flashcards
+const generateFlashcards = async () => {
+  try {
+    const storedApiKey = import.meta.env.GPT_API_KEY;
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${storedApiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "user",
+            content: `create a .csv for anki import with front and back semicolon separated i want 50 flashcards for this content:\n\n${markdownContent.value}`,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to generate flashcards");
+    }
+
+    const data = await response.json();
+    const flashcardsContent = data.choices[0].message.content;
+
+    // Create and download CSV file
+    const blob = new Blob([flashcardsContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${currentFile.value.split("/").pop().replace(".md", "")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error generating flashcards:", error);
+    alert(
+      "Error generating flashcards. Please check your API key and try again."
+    );
+  } finally {
+    isGeneratingFlashcards.value = false;
   }
 };
 </script>
@@ -293,7 +349,7 @@ const saveRevision = async () => {
 .markdown-explorer {
   display: flex;
   height: 100vh;
-  font-family: 'Inter', sans-serif; /* Modern font */
+  font-family: "Inter", sans-serif; /* Modern font */
 }
 
 .sidebar {
@@ -458,7 +514,8 @@ const saveRevision = async () => {
   gap: 0.5rem;
 }
 
-.edit-btn, .save-btn {
+.edit-btn,
+.save-btn {
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
   font-weight: 600;
@@ -491,7 +548,7 @@ const saveRevision = async () => {
   width: 100%;
   min-height: 500px;
   padding: 1.5rem;
-  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-family: "Menlo", "Monaco", "Courier New", monospace;
   font-size: 1rem;
   line-height: 1.5;
   color: #d1d5db;
@@ -506,7 +563,6 @@ const saveRevision = async () => {
   border-color: #5e81f4;
   box-shadow: 0 0 0 2px rgba(94, 129, 244, 0.2);
 }
-
 
 /* New styles for revision functionality */
 .content-container {
@@ -583,4 +639,26 @@ const saveRevision = async () => {
   outline: none;
   box-shadow: 0 0 0 2px rgba(94, 129, 244, 0.2);
 }
+
+
+.flashcards-btn {
+  padding: 0.5rem 1rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.flashcards-btn:hover {
+  background: #1d4ed8;
+}
+
+.flashcards-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
 </style>

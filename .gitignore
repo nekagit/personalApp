@@ -38,6 +38,7 @@ coverage
 .env
 .env.*
 !.env.example
+frontend/.env
 
 # Testing
 /cypress/videos/
