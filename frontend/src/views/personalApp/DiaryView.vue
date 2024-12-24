@@ -1,21 +1,18 @@
 <template>
   <div class="diary-explorer">
     <div class="sidebar">
-      <!-- Load Directory Button -->
       <div class="load-directory">
         <button @click="loadDiaryFolder" class="load-dir-btn">
           Load Diary Directory
         </button>
       </div>
 
-      <!-- New Entry Button -->
       <div class="new-entry" v-if="diaryEntries.length > 0">
         <button @click="createNewEntry" class="new-entry-btn">
           New Diary Entry
         </button>
       </div>
       
-      <!-- File tree showing diary entries -->
       <div class="diary-entries" v-if="diaryEntries.length > 0">
         <div class="entries-title">My Diary Entries</div>
         <div
@@ -29,26 +26,16 @@
       </div>
     </div>
 
-    <!-- Markdown content viewer/editor -->
-    <div class="content">
-      <div v-if="!diaryEntries.length" class="empty-state">
-        Click "Load Diary Directory" to get started
-      </div>
-      <template v-else>
+    <!-- Split view content area -->
+    <div :class="['content-area', { 'split-view': showSplitView }]">
+      <!-- New Entry View -->
+      <div v-if="showSplitView" class="content split-pane">
         <div class="toolbar">
-          <div v-if="currentFile" class="current-file">
-            {{ formatEntryName(getCurrentFileName) }}
+          <div class="current-file">
+            New Entry - {{ formatEntryName(getCurrentFileName) }}
           </div>
           <div class="actions">
             <button 
-              @click="toggleEditMode" 
-              class="edit-btn"
-              :class="{ active: isEditing }"
-            >
-              {{ isEditing ? 'Preview' : 'Edit' }}
-            </button>
-            <button 
-              v-if="isEditing" 
               @click="saveChanges" 
               class="save-btn"
               :disabled="!hasChanges"
@@ -59,19 +46,71 @@
         </div>
         
         <textarea
-          v-if="isEditing"
           v-model="markdownContent"
           class="markdown-editor"
           @input="handleEdit"
           placeholder="Dear Diary..."
         ></textarea>
+      </div>
+
+      <!-- Previous Entry View -->
+      <div v-if="showSplitView" class="content split-pane">
+        <div class="toolbar">
+          <div class="current-file">
+            Previous Entry - {{ formatEntryName(previousEntry?.name || '') }}
+          </div>
+        </div>
         
         <div 
-          v-else 
           class="markdown-viewer" 
-          v-html="parsedMarkdown"
+          v-html="previousEntryContent"
         ></div>
-      </template>
+      </div>
+
+      <!-- Regular single view -->
+      <div v-if="!showSplitView" class="content">
+        <div v-if="!diaryEntries.length" class="empty-state">
+          Click "Load Diary Directory" to get started
+        </div>
+        <template v-else>
+          <div class="toolbar">
+            <div v-if="currentFile" class="current-file">
+              {{ formatEntryName(getCurrentFileName) }}
+            </div>
+            <div class="actions">
+              <button 
+                @click="toggleEditMode" 
+                class="edit-btn"
+                :class="{ active: isEditing }"
+              >
+                {{ isEditing ? 'Preview' : 'Edit' }}
+              </button>
+              <button 
+                v-if="isEditing" 
+                @click="saveChanges" 
+                class="save-btn"
+                :disabled="!hasChanges"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+          
+          <textarea
+            v-if="isEditing"
+            v-model="markdownContent"
+            class="markdown-editor"
+            @input="handleEdit"
+            placeholder="Dear Diary..."
+          ></textarea>
+          
+          <div 
+            v-else 
+            class="markdown-viewer" 
+            v-html="parsedMarkdown"
+          ></div>
+        </template>
+      </div>
     </div>
   </div>
 </template>
@@ -85,13 +124,17 @@ const md = new MarkdownIt();
 
 // State
 const diaryEntries = ref([]);
-const currentFile = ref(null); // Changed to null for initial state
+const currentFile = ref(null);
 const markdownContent = ref('');
 const parsedMarkdown = ref('');
 const isEditing = ref(false);
 const originalContent = ref('');
 const hasChanges = ref(false);
+const showSplitView = ref(false);
+const previousEntry = ref(null);
+const previousEntryContent = ref('');
 
+const directoryHandle = ref(null); // Add this new ref to store the directory handle
 // Sort entries by date (newest first)
 const sortedEntries = computed(() => {
   return [...diaryEntries.value].sort((a, b) => {
@@ -101,8 +144,8 @@ const sortedEntries = computed(() => {
   });
 });
 
-// Format entry name for display
 const formatEntryName = (filename) => {
+  if (!filename) return '';
   const date = filename.split('.')[0];
   return new Date(date).toLocaleDateString('en-US', {
     weekday: 'long',
@@ -112,56 +155,17 @@ const formatEntryName = (filename) => {
   });
 };
 
-// Get current file name for display
 const getCurrentFileName = computed(() => {
   if (!currentFile.value) return '';
   return currentFile.value.name || '';
 });
 
-const loadDiaryFolder = async () => {
-  try {
-    const handle = await window.showDirectoryPicker();
-    diaryEntries.value = [];
 
-    for await (const entry of handle.values()) {
-      if (entry.name.endsWith('.md')) {
-        diaryEntries.value.push({
-          name: entry.name,
-          path: entry.name,
-          handle: entry,
-        });
-      }
-    }
 
-    if (sortedEntries.value.length > 0) {
-      loadEntry(sortedEntries.value[0]);
-    }
-  } catch (error) {
-    console.error('Error loading diary folder:', error);
-    alert('Error loading diary folder. Please try again.');
-  }
-};
-
-const createNewEntry = async () => {
-  const today = new Date().toISOString().split('T')[0];
-  const newFileName = `${today}.md`;
-  
-  const newEntry = {
-    name: newFileName,
-    path: newFileName,
-    handle: null,
-  };
-  
-  diaryEntries.value.push(newEntry);
-  currentFile.value = newEntry;
-  markdownContent.value = `# Diary Entry - ${formatEntryName(newFileName)}\n\n`;
-  originalContent.value = markdownContent.value;
-  hasChanges.value = false;
-  isEditing.value = true;
-};
 
 const loadEntry = async (entry) => {
   try {
+    showSplitView.value = false;
     currentFile.value = entry;
     const file = await entry.handle.getFile();
     const text = await file.text();
@@ -192,13 +196,86 @@ const handleEdit = () => {
   hasChanges.value = markdownContent.value !== originalContent.value;
 };
 
+const loadDiaryFolder = async () => {
+  try {
+    const handle = await window.showDirectoryPicker();
+    directoryHandle.value = handle; // Store the directory handle
+    diaryEntries.value = [];
+
+    for await (const entry of handle.values()) {
+      if (entry.name.endsWith('.md')) {
+        diaryEntries.value.push({
+          name: entry.name,
+          path: entry.name,
+          handle: entry,
+        });
+      }
+    }
+
+    if (sortedEntries.value.length > 0) {
+      loadEntry(sortedEntries.value[0]);
+    }
+  } catch (error) {
+    console.error('Error loading diary folder:', error);
+    alert('Error loading diary folder. Please try again.');
+  }
+};
+
+const createNewEntry = async () => {
+  if (!directoryHandle.value) {
+    alert('Please load a diary directory first.');
+    return;
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const newFileName = `${today}.md`;
+  
+  try {
+    // Create the new file in the directory
+    const newFileHandle = await directoryHandle.value.getFileHandle(newFileName, { create: true });
+    
+    const newEntry = {
+      name: newFileName,
+      path: newFileName,
+      handle: newFileHandle,
+    };
+    
+    // Add the new entry to the list if it doesn't exist
+    if (!diaryEntries.value.some(entry => entry.path === newFileName)) {
+      diaryEntries.value.push(newEntry);
+    }
+    
+    // Set up the split view
+    showSplitView.value = true;
+    currentFile.value = newEntry;
+    markdownContent.value = `# Diary Entry - ${formatEntryName(newFileName)}\n\n`;
+    originalContent.value = markdownContent.value;
+    hasChanges.value = false;
+
+    // Load the most recent entry as the previous entry
+    if (sortedEntries.value.length > 0) {
+      const mostRecentEntry = sortedEntries.value.find(entry => entry.path !== newFileName);
+      if (mostRecentEntry) {
+        previousEntry.value = mostRecentEntry;
+        const file = await mostRecentEntry.handle.getFile();
+        const text = await file.text();
+        const rawHtml = md.render(text);
+        previousEntryContent.value = DOMPurify.sanitize(rawHtml);
+      }
+    }
+  } catch (error) {
+    console.error('Error creating new diary entry:', error);
+    alert('Error creating new diary entry. Please try again.');
+  }
+};
+
 const saveChanges = async () => {
   try {
     if (!currentFile.value?.handle) {
       throw new Error('No file handle available for the current entry.');
     }
 
-    const fileHandle = currentFile.value.handle; // Use the file handle
+    const fileHandle = currentFile.value.handle;
     const writable = await fileHandle.createWritable();
     await writable.write(markdownContent.value);
     await writable.close();
@@ -207,6 +284,13 @@ const saveChanges = async () => {
     const rawHtml = md.render(markdownContent.value);
     parsedMarkdown.value = DOMPurify.sanitize(rawHtml);
     hasChanges.value = false;
+    showSplitView.value = false;
+
+    // Refresh the entry in diaryEntries if it's new
+    const existingEntryIndex = diaryEntries.value.findIndex(entry => entry.path === currentFile.value.path);
+    if (existingEntryIndex === -1) {
+      diaryEntries.value.push(currentFile.value);
+    }
 
     alert('Diary entry saved successfully!');
   } catch (error) {
@@ -219,6 +303,43 @@ const saveChanges = async () => {
 
 
 <style scoped>
+
+/* Add new split view styles */
+.content-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.split-view {
+  flex-direction: row;
+}
+
+.split-pane {
+  flex: 1;
+  overflow-y: auto;
+  border-right: 1px solid #d1d5db;
+  padding: 1rem;
+}
+
+.split-pane:last-child {
+  border-right: none;
+}
+
+/* Update existing styles to work with split view */
+.content {
+  padding: 1rem;
+  overflow-y: auto;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.markdown-editor,
+.markdown-viewer {
+  flex: 1;
+  min-height: 0;
+}
 .markdown-explorer {
   display: flex;
   height: 100vh;
